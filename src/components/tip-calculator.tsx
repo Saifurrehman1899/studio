@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +23,8 @@ import { DollarSign, Percent, Users, Calculator } from "lucide-react";
 const formSchema = z.object({
   billAmount: z.coerce
     .number({ invalid_type_error: "Please enter a valid number." })
-    .min(0, "Bill amount must be $0 or more."),
+    .min(0, "Bill amount must be $0 or more.")
+    .optional(), // Allow undefined to clear, but handle in component
   tipPercentageOption: z.string(),
   customTipPercentage: z.coerce
     .number({ invalid_type_error: "Please enter a valid number." })
@@ -52,7 +54,7 @@ export default function TipCalculator() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      billAmount: undefined, // Using undefined to let placeholder show
+      billAmount: undefined,
       tipPercentageOption: "18",
       customTipPercentage: undefined,
       numberOfPeople: 1,
@@ -100,6 +102,13 @@ export default function TipCalculator() {
     });
   };
 
+  // Helper to ensure value is a string for controlled inputs
+  const getControlledValue = (value: number | undefined | string) => {
+    if (value === undefined || value === null) return "";
+    return String(value);
+  };
+
+
   return (
     <Card className="w-full max-w-lg shadow-xl">
       <CardHeader className="text-center">
@@ -129,6 +138,11 @@ export default function TipCalculator() {
                   min="0"
                   step="0.01"
                   {...field}
+                  value={getControlledValue(field.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === "" ? undefined : parseFloat(value));
+                  }}
                   className="text-base"
                   aria-invalid={form.formState.errors.billAmount ? "true" : "false"}
                 />
@@ -190,6 +204,11 @@ export default function TipCalculator() {
                     min="0"
                     step="0.1"
                     {...field}
+                    value={getControlledValue(field.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value === "" ? undefined : parseFloat(value));
+                    }}
                     className="mt-1 text-base"
                     aria-invalid={form.formState.errors.customTipPercentage ? "true" : "false"}
                   />
@@ -219,6 +238,11 @@ export default function TipCalculator() {
                   min="1"
                   step="1"
                   {...field}
+                  value={getControlledValue(field.value)}
+                   onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === "" ? undefined : parseInt(value, 10));
+                  }}
                   className="text-base"
                   aria-invalid={form.formState.errors.numberOfPeople ? "true" : "false"}
                 />
@@ -253,10 +277,13 @@ export default function TipCalculator() {
          <Button
             type="button"
             onClick={() => {
-              form.reset();
-              setTipAmount(0);
-              setTotalAmount(0);
-              setAmountPerPerson(0);
+              form.reset({
+                billAmount: undefined,
+                tipPercentageOption: "18",
+                customTipPercentage: undefined,
+                numberOfPeople: 1,
+              });
+              // Resetting calculated values is handled by useEffect due to form.reset
             }}
             variant="outline"
             className="w-full mt-4"
